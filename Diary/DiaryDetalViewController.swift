@@ -2,9 +2,6 @@
 
 import UIKit
 
-protocol DiaryDetailViewDelegate : AnyObject {
-    func didSelectDelete(indexPath : IndexPath)
-}
 
 class DiaryDetailViewController: UIViewController {
 
@@ -13,7 +10,8 @@ class DiaryDetailViewController: UIViewController {
     @IBOutlet weak var ContentTextView: UITextView!
     
     @IBOutlet weak var dateLabel: UILabel!
-    weak var delegate : DiaryDetailViewDelegate?
+    
+    var starButton : UIBarButtonItem?
     
     
     var diary : Diary?
@@ -30,6 +28,10 @@ class DiaryDetailViewController: UIViewController {
         self.titleLabel.text = diary.title
         self.ContentTextView.text = diary.contents
         self.dateLabel.text = self.dateToString(date: diary.date)
+        self.starButton = UIBarButtonItem(image: nil, style: .plain, target: self, action: #selector(tabStarButton))
+        self.starButton?.image = diary.isStar ? UIImage(systemName: "star.fill") : UIImage(systemName: "star")
+        self.starButton?.tintColor = .orange
+        self.navigationItem.rightBarButtonItem = self.starButton
     }
     
     private func dateToString(date : Date) -> String{
@@ -62,10 +64,30 @@ class DiaryDetailViewController: UIViewController {
 
     @IBAction func tabDeleteButton(_ sender: Any) {
         guard let indexPath = self.indexPath else {return}
-        self.delegate?.didSelectDelete(indexPath: indexPath)
+        NotificationCenter.default.post(name: NSNotification.Name("deleteDiary"), object: indexPath, userInfo: nil)
         self.navigationController?.popViewController(animated: true)
         
     }
+    
+    @objc func tabStarButton() {
+        guard let isStar = self.diary?.isStar else {return}
+        guard let indexPath = self.indexPath else {return}
+        
+        if isStar {
+            self.starButton?.image = UIImage(systemName: "star")
+        }
+        else {
+            self.starButton?.image = UIImage(systemName: "star.fill")
+        }
+        self.diary?.isStar = !isStar
+        NotificationCenter.default.post(name: NSNotification.Name("starDiary"), object: [
+            "diary": self.diary,
+            "isStar": self.diary?.isStar ?? false,
+            "indexPath" : indexPath
+            ],
+        userInfo: nil)
+    }
+    
     
     deinit {
         NotificationCenter.default.removeObserver(self)
